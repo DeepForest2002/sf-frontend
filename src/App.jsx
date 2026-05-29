@@ -88,7 +88,7 @@ function App() {
         margin: "0 auto",
       }}
     >
-      <h1>Salesforce Validation Rule Manager</h1>
+      <h1>Salesforce Validation Manager</h1>
 
       {!loggedIn ? (
         <button onClick={handleLogin} style={btnStyle("#0070d2")}>
