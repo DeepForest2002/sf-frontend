@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-
-const API = "http://localhost:5000";
+axios.defaults.withCredentials = true;
+const API = "https://sf-backend-8xuu.onrender.com/";
 
 function App() {
   const [rules, setRules] = useState([]);
