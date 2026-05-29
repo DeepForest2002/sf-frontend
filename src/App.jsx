@@ -1,16 +1,25 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-axios.defaults.withCredentials = true;
+
 const API = "https://sf-backend-8xuu.onrender.com";
 
 function App() {
   const [rules, setRules] = useState([]);
   const [loggedIn, setLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [tokens, setTokens] = useState({ access_token: "", instance_url: "" });
 
   useEffect(() => {
-    if (window.location.search.includes("loggedIn=true")) {
+    // 👇 Read tokens from URL after login redirect
+    const params = new URLSearchParams(window.location.search);
+    const access_token = params.get("access_token");
+    const instance_url = params.get("instance_url");
+
+    if (access_token && instance_url) {
+      setTokens({ access_token, instance_url });
       setLoggedIn(true);
+      // Clean URL
+      window.history.replaceState({}, document.title, "/");
     }
   }, []);
 
@@ -21,32 +30,51 @@ function App() {
   const fetchRules = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${API}/api/validation-rules`);
+      const { data } = await axios.get(`${API}/api/validation-rules`, {
+        headers: {
+          access_token: tokens.access_token,
+          instance_url: tokens.instance_url,
+        },
+      });
       setRules(data);
     } catch (err) {
-      alert("Error fetching rules");
+      alert("Error: " + (err.response?.data?.error || err.message));
     }
     setLoading(false);
   };
 
   const toggleRule = async (id, currentActive) => {
     try {
-      await axios.patch(`${API}/api/validation-rules/${id}`, {
-        active: !currentActive,
-      });
+      await axios.patch(
+        `${API}/api/validation-rules/${id}`,
+        { active: !currentActive },
+        {
+          headers: {
+            access_token: tokens.access_token,
+            instance_url: tokens.instance_url,
+          },
+        },
+      );
       setRules(
         rules.map((r) => (r.Id === id ? { ...r, Active: !currentActive } : r)),
       );
     } catch (err) {
-      alert("Error updating rule");
+      alert("Error: " + (err.response?.data?.error || err.message));
     }
   };
 
   const toggleAll = async (activate) => {
     for (const rule of rules) {
-      await axios.patch(`${API}/api/validation-rules/${rule.Id}`, {
-        active: activate,
-      });
+      await axios.patch(
+        `${API}/api/validation-rules/${rule.Id}`,
+        { active: activate },
+        {
+          headers: {
+            access_token: tokens.access_token,
+            instance_url: tokens.instance_url,
+          },
+        },
+      );
     }
     setRules(rules.map((r) => ({ ...r, Active: activate })));
   };
@@ -54,13 +82,13 @@ function App() {
   return (
     <div
       style={{
-        padding: "4rem",
+        padding: "2rem",
         fontFamily: "sans-serif",
         maxWidth: 800,
         margin: "0 auto",
       }}
     >
-      <h1>Salesforce Validation Manager</h1>
+      <h1>Salesforce Validation Rule Manager</h1>
 
       {!loggedIn ? (
         <button onClick={handleLogin} style={btnStyle("#0070d2")}>
@@ -68,6 +96,7 @@ function App() {
         </button>
       ) : (
         <>
+          <p style={{ color: "green" }}>✅ Logged in!</p>
           <button onClick={fetchRules} style={btnStyle("#0070d2")}>
             📋 Get Validation Rules
           </button>
@@ -141,7 +170,7 @@ const btnStyle = (bg) => ({
   color: "white",
   border: "none",
   padding: "8px 16px",
-  margin: "10px",
+  margin: "4px",
   borderRadius: 4,
   cursor: "pointer",
   fontWeight: "bold",
